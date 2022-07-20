@@ -1,9 +1,11 @@
 package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
+import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import git.buchard36.civilizations.npc.interfaces.OnHittingComplete;
 import git.buchard36.civilizations.npc.interfaces.OnNpcCreate;
 import git.buchard36.civilizations.npc.interfaces.OnPathfindComplete;
+import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -30,9 +32,14 @@ import static git.buchard36.civilizations.Civilizations.around;
 public class NpcBrain extends NpcInventoryDecider{
 
     public BukkitTask runningThinkingTask;
+    protected final ServerPlayer nmsNpc;
+    protected final Navigator npcNavigator;
 
     public NpcBrain(NPC npc) {
         super(npc);
+        CraftPlayer craftPlayer = (CraftPlayer) this.player; // player inherits from NpcInventoryDecider
+        this.nmsNpc = craftPlayer.getHandle();
+        this.npcNavigator = npc.getNavigator();
 
         this.runningThinkingTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             think();
@@ -46,8 +53,6 @@ public class NpcBrain extends NpcInventoryDecider{
                     Material.ACACIA_LOG,
                     Material.OAK_LOG);*/
 
-            CraftPlayer craftPlayer = (CraftPlayer) this.player;
-            ServerPlayer nmsPlayer = craftPlayer.getHandle();
 
             final Player targetPlayer = Bukkit.getPlayer("Burchard36");
             final CraftPlayer targetCraftPlayer = (CraftPlayer) targetPlayer;
@@ -61,11 +66,11 @@ public class NpcBrain extends NpcInventoryDecider{
                     this.waitForPathfind(() -> {
                         this.player.getEquipment().setItemInMainHand(new ItemStack(Material.COBWEB));
                         targetPlayer.getLocation().getBlock().setType(Material.COBWEB);
-                        nmsPlayer.swing(InteractionHand.MAIN_HAND);
+                        this.nmsNpc.swing(InteractionHand.MAIN_HAND);
                         this.player.chat("Hehe i like spiders! Do you? UwU :3 <3<3");
                         Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
                             this.player.getEquipment().setItemInMainHand(new ItemStack(Material.TNT));
-                            nmsPlayer.swing(InteractionHand.MAIN_HAND);
+                            this.nmsNpc.swing(InteractionHand.MAIN_HAND);
                             Location tntLocation = targetPlayer.getLocation().clone().add(1, 0, 1);
                             tntLocation.getBlock().setType(Material.TNT);
                             targetPlayer.getWorld().playSound(targetPlayer.getLocation(), Sound.BLOCK_GRASS_PLACE, 1, 1);
@@ -73,13 +78,13 @@ public class NpcBrain extends NpcInventoryDecider{
                             Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
                                 this.npc.faceLocation(tntLocation);
                                 this.player.getEquipment().setItemInMainHand(new ItemStack(Material.FLINT_AND_STEEL));
-                                nmsPlayer.swing(InteractionHand.MAIN_HAND);
+                                this.nmsNpc.swing(InteractionHand.MAIN_HAND);
                                 targetPlayer.getWorld().playSound(targetPlayer.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 1, 1);
                                 tntLocation.getBlock().setType(Material.AIR);
                                 TNTPrimed primed = (TNTPrimed) tntLocation.getWorld().spawnEntity(tntLocation, EntityType.PRIMED_TNT);
                                 primed.setFuseTicks(20000);
                                 targetPlayer.getWorld().playSound(targetPlayer.getLocation(), Sound.ENTITY_TNT_PRIMED, 1, 1);
-                                nmsPlayer.setSpeed(5);
+                                this.nmsNpc.setSpeed(5);
                                 long highestYat = tntLocation.getWorld().getHighestBlockYAt((int) (tntLocation.getX() + 15), (int) (tntLocation.getZ() + 15));
                                 this.npc.getNavigator().setTarget(targetPlayer.getLocation().clone().add(15, highestYat, 15));
                                 this.waitForPathfind(() -> {

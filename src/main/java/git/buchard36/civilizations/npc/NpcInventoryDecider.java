@@ -12,7 +12,6 @@ public class NpcInventoryDecider {
     protected final Player player;
     public NpcInventoryDecider(NPC npc) {
         this.npc = npc;
-
         this.player = (Player) npc.getEntity();
     }
 
