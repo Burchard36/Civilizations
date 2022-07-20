@@ -13,6 +13,7 @@ import org.bukkit.craftbukkit.v1_19_R1.entity.CraftLivingEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.scheduler.BukkitTask;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,7 +41,7 @@ public class NpcController extends NpcInventoryDecider {
     protected void makePlayerAttack(LivingEntity entity,
                                     int times,
                                     long delayBetweenHits,
-                                    CallbackFunction callback) {
+                                    @Nullable CallbackFunction callback) {
         AtomicInteger timesRan = new AtomicInteger(0);
         net.minecraft.world.entity.LivingEntity nmsEntity = ((CraftLivingEntity) entity).getHandle();
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
@@ -57,24 +58,24 @@ public class NpcController extends NpcInventoryDecider {
 
         Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
             task.cancel();
-            callback.onComplete();
+            if (callback != null) callback.onComplete();
         }, (delayBetweenHits * times) + 5); // Add 5 ticks to account for the delay between each hit & processing time
     }
 
     protected void placeBlockAsNpc(Location placingLocation,
                                    Material typeToPlace,
-                                   CallbackFunction onCompletion) {
+                                   @Nullable CallbackFunction onCompletion) {
         placingLocation.getBlock().setType(typeToPlace);
         Objects.requireNonNull(placingLocation.getWorld())
                 .playSound(placingLocation, Sound.BLOCK_GRASS_PLACE, 1, 1); // Make better sound processing later
         this.nmsNpc.swing(InteractionHand.MAIN_HAND);
-        onCompletion.onComplete();
+        if (onCompletion != null) onCompletion.onComplete();
     }
 
     protected void navigateNpcTo(Location location,
                                  float atBaseSpeed,
                                  boolean useSprintingAnimation,
-                                 CallbackFunction onCompletion) {
+                                 @Nullable CallbackFunction onCompletion) {
         double distance = location.distance(this.bukkitPlayer.getLocation());
         this.npcNavigator.getDefaultParameters().range((float) (distance * 2F));
         float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
@@ -91,7 +92,7 @@ public class NpcController extends NpcInventoryDecider {
 
             Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
                 this.nmsNpc.setSpeed(initialBaseSpeed);
-                onCompletion.onComplete();
+                if (onCompletion != null) onCompletion.onComplete();
             }); // Run completions operations back on main thread
         });
     }
