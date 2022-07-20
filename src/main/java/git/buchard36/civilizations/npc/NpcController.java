@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NpcController extends NpcInventoryDecider {
 
     protected final BlockScanner blockScanner;
+    protected BukkitTask lockToTask;
 
     public NpcController(NPC npc) {
         super(npc);
@@ -101,6 +102,7 @@ public class NpcController extends NpcInventoryDecider {
         float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
+        this.npcNavigator.setTarget(location.add(1, 0, 1));
         CompletableFuture.runAsync(() -> { // begin NPC waiting on a separate thread, so we don't halt the main thread
             while (this.npcNavigator.isNavigating()) {
                 try {
@@ -123,5 +125,17 @@ public class NpcController extends NpcInventoryDecider {
 
     public void sendMessageTo(LivingEntity entity, String msg) {
         entity.sendMessage(msg);
+    }
+
+    public void lockTo(LivingEntity entity) {
+        if (this.lockToTask != null) this.lockToTask.cancel();
+        this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
+            this.npcNavigator.setTarget(entity.getLocation());
+            this.citizensNpc.faceLocation(entity.getEyeLocation());
+        }, 0, 60L);
+    }
+
+    public void stopLockingTask() {
+        this.lockToTask.cancel();
     }
 }

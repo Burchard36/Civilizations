@@ -24,7 +24,7 @@ public class NpcFactory {
         //TODO this gonna cause mem leaks on reloads.
         this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS");
         npc.spawn(player.getLocation().add(5, 1, 5));
-        new NpcController(npc);
+        new NpcController(npc).lockTo(player);
         /*Bukkit.getScheduler().runTaskTimer(this.civs, () -> {
             npc.getNavigator().setTarget(player.getLocation().add(2, 0, 2));
         }, 60L, 60L);*/
