@@ -5,13 +5,18 @@ import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+
+
+
 public abstract class NpcBrain  {
 
+    protected final TargetingConditions combatTargetConditions;
     protected final BlockScanner blockScanner;
     protected final NPC citizensNpc;
     public BukkitTask runningThinkingTask;
@@ -25,6 +30,7 @@ public abstract class NpcBrain  {
         this.nmsNpc = ((CraftPlayer) this.bukkitPlayer).getHandle();
         this.npcNavigator = npc.getNavigator();
         this.blockScanner = new BlockScanner();
+        this.combatTargetConditions = TargetingConditions.forCombat();
         this.startThinking();
     }
 
