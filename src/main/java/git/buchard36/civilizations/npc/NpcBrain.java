@@ -1,9 +1,7 @@
 package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
-import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import git.buchard36.civilizations.npc.interfaces.OnHittingComplete;
-import git.buchard36.civilizations.npc.interfaces.OnNpcCreate;
 import git.buchard36.civilizations.npc.interfaces.OnPathfindComplete;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
@@ -11,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -20,16 +17,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static git.buchard36.civilizations.Civilizations.around;
 
-public class NpcBrain extends NpcInventoryDecider{
+public class NpcBrain extends NpcInventoryDecider {
 
     public BukkitTask runningThinkingTask;
     protected final ServerPlayer nmsNpc;
@@ -37,6 +32,7 @@ public class NpcBrain extends NpcInventoryDecider{
 
     public NpcBrain(NPC npc) {
         super(npc);
+
         CraftPlayer craftPlayer = (CraftPlayer) this.player; // player inherits from NpcInventoryDecider
         this.nmsNpc = craftPlayer.getHandle();
         this.npcNavigator = npc.getNavigator();
@@ -45,6 +41,7 @@ public class NpcBrain extends NpcInventoryDecider{
             think();
         }, 100L, 100L);
     }
+
 
     public void think() {
         if (this.needsWood()) {
@@ -180,58 +177,6 @@ public class NpcBrain extends NpcInventoryDecider{
 
             Bukkit.getScheduler().runTask(Civilizations.INSTANCE, creationCallback::onComplete);
         });
-    }
-
-    public List<Vector> processDistancePathfind(Location targetLocation) {
-        Location distanceBetween = targetLocation.clone().subtract(this.player.getLocation());
-        Location currentLocation = this.player.getLocation();
-        List<Vector> points = new ArrayList<>();
-        Bukkit.broadcastMessage("Target location is"
-                + " X: "
-                + targetLocation.getX()
-                + " Y: "
-                + targetLocation.getY()
-                + " Z: "
-                + targetLocation.getZ()
-        );
-
-        Bukkit.broadcastMessage("Starting location is"
-                + " X: "
-                + currentLocation.getX()
-                + " Y: "
-                + currentLocation.getY()
-                + " Z: "
-                + currentLocation.getZ()
-        );
-
-        Bukkit.broadcastMessage("Distance between is"
-                + " X: "
-                + distanceBetween.getX()
-                + " Y: "
-                + distanceBetween.getY()
-                + " Z: "
-                + distanceBetween.getZ()
-        );
-
-        double iterationsX = (distanceBetween.getX() + currentLocation.getX()) / 8;
-        double iterationsXLeftover = (distanceBetween.getX() + currentLocation.getX()) % 8;
-        double iterationsZ = (distanceBetween.getZ() + currentLocation.getZ()) / 8;
-        double iterationsZLeftover = (distanceBetween.getZ() + currentLocation.getZ()) % 8;
-
-        for (double x = 0; x <= iterationsX; x++) {
-            for (double z = 0; z < iterationsZ; z++) {
-                Bukkit.broadcastMessage("Adding new vector with location"
-                        + " X: " + (x*8)
-                        + " Y: " + currentLocation.getY()
-                        + " Z: " + (z*8)
-                );
-                points.add(new Vector(x * 8, targetLocation.getY(), z * 8));
-            }
-        }
-        //points.add(new Vector(targetLocation.getX(), targetLocation.getY(), targetLocation.getZ()));
-        //points.add(new Vector(iterationsXLeftover * 8, targetLocation.getY(), iterationsZLeftover * 8));
-
-        return points;
     }
 
 }

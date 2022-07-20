@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-public class NpcInventoryDecider {
+public class NpcInventoryDecider  {
     protected final NPC npc;
     protected final Player player;
     public NpcInventoryDecider(NPC npc) {

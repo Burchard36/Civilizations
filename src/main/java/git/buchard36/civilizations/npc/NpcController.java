@@ -2,6 +2,7 @@ package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
+import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.npc.NPC;
 import net.minecraft.world.InteractionHand;
 import org.bukkit.Bukkit;
@@ -14,10 +15,14 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Controller method to handle the NPC's behavior.
  */
-public class NpcController extends NpcBrain {
+public class NpcController extends NpcBrain{
+
+    protected final BlockScanner blockScanner;
 
     public NpcController(NPC npc) {
         super(npc);
+
+        this.blockScanner = new BlockScanner();
     }
 
     protected void placeBlockAsNpc(Location placingLocation,
