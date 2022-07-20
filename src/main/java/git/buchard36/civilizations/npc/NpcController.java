@@ -11,9 +11,11 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftLivingEntity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import javax.annotation.Nullable;
+import java.awt.*;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,14 +64,32 @@ public class NpcController extends NpcInventoryDecider {
         }, (delayBetweenHits * times) + 5); // Add 5 ticks to account for the delay between each hit & processing time
     }
 
+    /**
+     * Sets the main hand to the typeToPlace, waits, faces torwards placing locations, waits again, and then places item with sound
+     * @param placingLocation Location to place block at
+     * @param typeToPlace Material type to place
+     * @param onCompletion Callback function to run when the block is placed
+     */
     protected void placeBlockAsNpc(Location placingLocation,
                                    Material typeToPlace,
                                    @Nullable CallbackFunction onCompletion) {
-        placingLocation.getBlock().setType(typeToPlace);
-        Objects.requireNonNull(placingLocation.getWorld())
-                .playSound(placingLocation, Sound.BLOCK_GRASS_PLACE, 1, 1); // Make better sound processing later
-        this.nmsNpc.swing(InteractionHand.MAIN_HAND);
-        if (onCompletion != null) onCompletion.onComplete();
+        final ItemStack stack = new ItemStack(typeToPlace);
+        Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
+            this.citizensNpc.faceLocation(placingLocation); // 4 ticks later, face towards the block to place
+
+            Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
+                this.bukkitPlayer.getEquipment().setItemInMainHand(stack); // 3 ticks later set the item in the NPC's hand
+
+                Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
+                    this.nmsNpc.swing(InteractionHand.MAIN_HAND);
+                    Objects.requireNonNull(placingLocation.getWorld())
+                            .playSound(placingLocation, Sound.BLOCK_GRASS_PLACE, 1, 1); // Make better sound processing later
+                    placingLocation.getBlock().setType(typeToPlace);
+                    //this.bukkitPlayer.getEquipment().setItemInMainHand(new ItemStack(Material.AIR));
+                    if (onCompletion != null) onCompletion.onComplete();
+                }, 5L);
+            }, 3L);
+        }, 4L);
     }
 
     protected void navigateNpcTo(Location location,
