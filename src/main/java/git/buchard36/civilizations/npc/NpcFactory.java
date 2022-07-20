@@ -27,7 +27,7 @@ public class NpcFactory {
         npc.spawn(player.getLocation().add(5, 1, 5));
         final NpcController controller = new NpcController(npc, player);
 
-        controller.lockTo(player);
+        controller.lockToOwner();
         controller.registerRepeatingAction(new TntTrollAction());
         /*Bukkit.getScheduler().runTaskTimer(this.civs, () -> {
             npc.getNavigator().setTarget(player.getLocation().add(2, 0, 2));

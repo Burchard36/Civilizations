@@ -16,6 +16,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -137,8 +138,7 @@ public class NpcController extends NpcInventoryDecider {
                               @Nullable OnFunctionRestarted onRestarted) {
         double distance = player.getLocation().distance(this.bukkitPlayer.getLocation());
         AtomicReference<Location> currentPlayerLocation = new AtomicReference<>(player.getLocation());
-        this.npcNavigator.getDefaultParameters().range((float) (distance * 2F));
-        float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
+        this.npcNavigator.getDefaultParameters().range((float) (distance * 3F));
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
         this.npcNavigator.setTarget(player.getLocation().add(1, 0, 1));
@@ -156,6 +156,7 @@ public class NpcController extends NpcInventoryDecider {
             final double difference = currentLocation.distance(currentPlayerLocation.get());
             if (difference >= 7) {
                 Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
+                    this.creepyTeleportToOwner();
                     this.navigateNpcToPlayer(player, atBaseSpeed, useSprintingAnimation, onCompletion, onRestarted);
                     if (onRestarted != null) onRestarted.onRestart();
                 });
@@ -168,6 +169,16 @@ public class NpcController extends NpcInventoryDecider {
                 if (onCompletion != null) onCompletion.onComplete();
             }); // Run completions operations back on main thread
         });
+    }
+
+    public void creepyTeleportToOwner() {
+        final Location offsetOwnerLocation = this.linkedPlayer.getLocation().add(35, 0, 30);
+        final int highestY = Objects.requireNonNull(offsetOwnerLocation.getWorld())
+                .getHighestBlockYAt(offsetOwnerLocation.getBlockX(),
+                offsetOwnerLocation.getBlockZ());
+        offsetOwnerLocation.setY(highestY);
+        this.citizensNpc.teleport(offsetOwnerLocation.add(0, 1, 0), PlayerTeleportEvent.TeleportCause.PLUGIN);
+        this.lockToOwner();
     }
 
     public void navigateNpcTo(Location location,
@@ -206,12 +217,25 @@ public class NpcController extends NpcInventoryDecider {
         entity.sendMessage(msg);
     }
 
+    public void lockToOwner() {
+        if (this.lockToTask != null) this.lockToTask.cancel();
+        this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
+            this.setTargetAndFaceDirection(this.linkedPlayer);
+        }, 0, 35L);
+    }
+
     public void lockTo(LivingEntity entity) {
         if (this.lockToTask != null) this.lockToTask.cancel();
         this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
-            this.npcNavigator.setTarget(entity.getLocation());
-            this.citizensNpc.faceLocation(entity.getLocation());
-        }, 0, 60L);
+            this.setTargetAndFaceDirection(entity);
+        }, 0, 35L);
+    }
+
+    protected void setTargetAndFaceDirection(LivingEntity entity) {
+        this.npcNavigator.getDefaultParameters().baseSpeed(1.5F);
+        this.nmsNpc.setSprinting(false);
+        this.npcNavigator.setTarget(entity.getLocation());
+        this.citizensNpc.faceLocation(entity.getLocation());
     }
 
     public void stopLockingTask() {

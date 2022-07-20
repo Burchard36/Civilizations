@@ -64,7 +64,7 @@ public class TntTrollAction extends StaticRepeatingAction {
                         controller.navigateNpcTo(pussyRunAwayLocation, 3, true, () -> {
                             controller.sendChatMessage("KABOOOM!");
                             primed.setFuseTicks(0);
-                            controller.lockTo(controller.linkedPlayer);
+                            controller.lockToOwner();
                             function.onComplete(); // Start the
                         });
                     }, 5, null);
