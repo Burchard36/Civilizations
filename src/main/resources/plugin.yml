@@ -1,0 +1,4 @@
+name: Civilizations
+version: '${project.version}'
+main: git.buchard36.civilizations.Civilizations
+api-version: 1.19
