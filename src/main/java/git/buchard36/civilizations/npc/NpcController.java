@@ -3,6 +3,7 @@ package git.buchard36.civilizations.npc;
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.actions.StaticRepeatingAction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
+import git.buchard36.civilizations.npc.interfaces.OnFunctionRestarted;
 import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.npc.NPC;
 import net.minecraft.world.InteractionHand;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Controller method to handle the NPC's behavior.
@@ -50,6 +52,7 @@ public class NpcController extends NpcInventoryDecider {
     }
 
     public void registerRepeatingAction(StaticRepeatingAction action) {
+        action.startTask(this);
         this.repeatingActions.add(action);
     }
 
@@ -118,12 +121,62 @@ public class NpcController extends NpcInventoryDecider {
         this.bukkitPlayer.getEquipment().setItemInMainHand(new ItemStack(material));
     }
 
+    /**
+     * Continuesly navigate to a player until the NPC reaches them
+     * @param player Player to follow to
+     * @param atBaseSpeed speed to follow at
+     * @param useSprintingAnimation wether or not the NPC should be spring or not
+     * @param onCompletion Called when this method completes
+     * @param onRestarted Called when this method restarts due to the player moving, and the NPC reaching the old player location
+     *                    has a distance greater than 7 (Reach distance);
+     */
+    public void navigateNpcToPlayer(Player player,
+                              float atBaseSpeed,
+                              boolean useSprintingAnimation,
+                              @Nullable CallbackFunction onCompletion,
+                              @Nullable OnFunctionRestarted onRestarted) {
+        double distance = player.getLocation().distance(this.bukkitPlayer.getLocation());
+        AtomicReference<Location> currentPlayerLocation = new AtomicReference<>(player.getLocation());
+        this.npcNavigator.getDefaultParameters().range((float) (distance * 2F));
+        float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
+        this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
+        this.nmsNpc.setSprinting(useSprintingAnimation);
+        this.npcNavigator.setTarget(player.getLocation().add(1, 0, 1));
+        CompletableFuture.runAsync(() -> { // begin NPC waiting on a separate thread, so we don't halt the main thread
+            while (this.npcNavigator.isNavigating()) {
+                try {
+                    Thread.sleep(50); // block while NPC is navigating
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            currentPlayerLocation.set(player.getLocation().clone().add(0.75, 0, 0.75));
+            final Location currentLocation = this.bukkitPlayer.getLocation();
+            final double difference = currentLocation.distance(currentPlayerLocation.get());
+            if (difference >= 7) {
+                Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
+                    this.navigateNpcToPlayer(player, atBaseSpeed, useSprintingAnimation, onCompletion, onRestarted);
+                    if (onRestarted != null) onRestarted.onRestart();
+                });
+                return;
+            }
+
+            Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
+                this.nmsNpc.setSpeed(1F);
+                this.nmsNpc.setSprinting(!useSprintingAnimation);
+                if (onCompletion != null) onCompletion.onComplete();
+            }); // Run completions operations back on main thread
+        });
+    }
+
     public void navigateNpcTo(Location location,
                                  float atBaseSpeed,
                                  boolean useSprintingAnimation,
                                  @Nullable CallbackFunction onCompletion) {
-        double distance = location.distance(this.bukkitPlayer.getLocation());
-        this.npcNavigator.getDefaultParameters().range((float) (distance * 2F));
+        final Location currentLocation = this.bukkitPlayer.getLocation();
+        float distance = (float) currentLocation.distance(location);
+        this.npcNavigator.getDefaultParameters().range(distance * 2F);
         float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
@@ -138,7 +191,8 @@ public class NpcController extends NpcInventoryDecider {
             }
 
             Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
-                this.nmsNpc.setSpeed(initialBaseSpeed);
+                this.nmsNpc.setSpeed(1F);
+                this.nmsNpc.setSprinting(false);
                 if (onCompletion != null) onCompletion.onComplete();
             }); // Run completions operations back on main thread
         });
@@ -156,7 +210,7 @@ public class NpcController extends NpcInventoryDecider {
         if (this.lockToTask != null) this.lockToTask.cancel();
         this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             this.npcNavigator.setTarget(entity.getLocation());
-            this.citizensNpc.faceLocation(entity.getEyeLocation());
+            this.citizensNpc.faceLocation(entity.getLocation());
         }, 0, 60L);
     }
 

@@ -1,6 +1,7 @@
 package git.buchard36.civilizations.npc.actions;
 
 import git.buchard36.civilizations.npc.NpcController;
+import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -19,7 +20,7 @@ public class TntTrollAction extends StaticRepeatingAction {
 
     @Override
     public boolean shouldTaskFire() {
-        final int chanceToFire = this.random.nextInt((10) + 1);
+        final int chanceToFire = this.random.nextInt((20) + 1);
         Bukkit.broadcastMessage("Chance for TntTrollAction to fire: " + chanceToFire);
         final int predictedChance = this.random.nextInt(100);
         Bukkit.broadcastMessage("Chance calculated: " + predictedChance);
@@ -27,17 +28,22 @@ public class TntTrollAction extends StaticRepeatingAction {
     }
 
     @Override
-    public void task(NpcController controller) {
+    public void task(NpcController controller, CallbackFunction function) {
         Bukkit.broadcastMessage("Firing task!");
         controller.stopLockingTask();
         controller.sendChatMessage("Hey... I really wana tell you something <3");
 
-        final Location playerLocation = controller.linkedPlayer.getLocation();
-        final Location playerLocationOffset = controller.linkedPlayer.getLocation().clone().add(2, 0, 2);
-        controller.navigateNpcTo(playerLocationOffset, 1, false, () -> {
+
+        controller.navigateNpcToPlayer(controller.linkedPlayer, 1.5F, true, () -> {
             controller.sendChatMessage("You know, over the time I've spent with you, i believe im starting to feel something" +
                     "special between us *blushes*");
 
+            final Location playerLocation = controller.linkedPlayer.getLocation();
+            if (playerLocation.distance(controller.bukkitPlayer.getLocation()) >= 7) {
+                controller.sendChatMessage("THE FUCK DID I JUST SAY STOP RUNNING");
+                this.task(controller, function);
+                return;
+            }
             controller.placeBlockAsNpc(playerLocation, Material.COBWEB, () -> {
                 controller.sendChatMessage("I like cobwebs hehe, i hope you do too ;)");
 
@@ -58,10 +64,14 @@ public class TntTrollAction extends StaticRepeatingAction {
                         controller.navigateNpcTo(pussyRunAwayLocation, 3, true, () -> {
                             controller.sendChatMessage("KABOOOM!");
                             primed.setFuseTicks(0);
+                            controller.lockTo(controller.linkedPlayer);
+                            function.onComplete(); // Start the
                         });
                     }, 5, null);
                 });
             });
+        }, () -> {
+            controller.sendChatMessage("Quit running you little cunt.");
         });
     }
 }

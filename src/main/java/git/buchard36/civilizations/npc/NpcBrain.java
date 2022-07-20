@@ -21,7 +21,7 @@ public abstract class NpcBrain  {
     protected final NPC citizensNpc;
     public BukkitTask runningThinkingTask;
     protected final ServerPlayer nmsNpc;
-    protected final Player bukkitPlayer;
+    public final Player bukkitPlayer;
     protected final Navigator npcNavigator;
 
     public NpcBrain(NPC npc) {

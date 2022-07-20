@@ -2,6 +2,7 @@ package git.buchard36.civilizations.npc.actions;
 
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.NpcController;
+import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -21,7 +22,10 @@ public abstract class StaticRepeatingAction {
     public void startTask(NpcController controller) {
         this.repeatingTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             if (!this.shouldTaskFire()) return;
-            this.task(controller);
+            this.repeatingTask.cancel();
+            this.task(controller, () -> {
+                this.startTask(controller);
+            });
         }, 0, delayBetweenTasks);
     }
 
@@ -31,6 +35,6 @@ public abstract class StaticRepeatingAction {
      */
     public abstract boolean shouldTaskFire();
 
-    public abstract void task(NpcController controller);
+    public abstract void task(NpcController controller, CallbackFunction function);
 
 }
