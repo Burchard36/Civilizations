@@ -38,21 +38,4 @@ public final class Civilizations extends BurchAPI {
         return factory;
     }
 
-
-    public static Collection<ChunkSnapshot> around(Chunk origin, int radius) {
-        World world = origin.getWorld();
-
-        int length = (radius * 2) + 1;
-        Set<ChunkSnapshot> chunks = new HashSet<>(length * length);
-
-        int cX = origin.getX();
-        int cZ = origin.getZ();
-
-        for (int x = -radius; x <= radius; x++) {
-            for (int z = -radius; z <= radius; z++) {
-                chunks.add(world.getChunkAt(cX + x, cZ + z).getChunkSnapshot());
-            }
-        }
-        return chunks;
-    }
 }

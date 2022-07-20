@@ -1,57 +1,62 @@
 package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
-import git.buchard36.civilizations.npc.interfaces.OnHittingComplete;
-import git.buchard36.civilizations.npc.interfaces.OnPathfindComplete;
+import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.ai.Navigator;
 import net.citizensnpcs.api.npc.NPC;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.*;
+public abstract class NpcBrain  {
 
-import static git.buchard36.civilizations.Civilizations.around;
-
-public class NpcBrain extends NpcInventoryDecider {
-
+    protected final BlockScanner blockScanner;
+    protected final NPC citizensNpc;
     public BukkitTask runningThinkingTask;
     protected final ServerPlayer nmsNpc;
+    protected final Player bukkitPlayer;
     protected final Navigator npcNavigator;
 
     public NpcBrain(NPC npc) {
-        super(npc);
-
-        CraftPlayer craftPlayer = (CraftPlayer) this.player; // player inherits from NpcInventoryDecider
-        this.nmsNpc = craftPlayer.getHandle();
+        this.citizensNpc = npc;
+        this.bukkitPlayer = (Player) npc.getEntity();
+        this.nmsNpc = ((CraftPlayer) this.bukkitPlayer).getHandle();
         this.npcNavigator = npc.getNavigator();
-
-        this.runningThinkingTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
-            think();
-        }, 100L, 100L);
+        this.blockScanner = new BlockScanner();
+        this.startThinking();
     }
 
+    public void stopThinking() {
+        this.runningThinkingTask.cancel();
+    }
 
-    public void think() {
-        if (this.needsWood()) {
+    public void startThinking() {
+        this.runningThinkingTask = Bukkit
+                .getScheduler()
+                .runTaskTimer(
+                        Civilizations.INSTANCE,
+                        this::think,
+                        100L,
+                        100L
+                );
+    }
+
+    /**
+     * Calls ever few ticks, process tasks for the NPC to do in this method.
+     */
+    public abstract void think();
+
+    /*public void thinkPlease() {
+        /*if (this.needsWood()) {
             this.runningThinkingTask.cancel();
             /*final List<BlockReferance> blocks = this.getReferancesTo(this.player.getLocation().getChunk(),
                     Material.ACACIA_LOG,
                     Material.OAK_LOG);*/
 
 
-            final Player targetPlayer = Bukkit.getPlayer("Burchard36");
+            /*final Player targetPlayer = Bukkit.getPlayer("Burchard36");
             final CraftPlayer targetCraftPlayer = (CraftPlayer) targetPlayer;
             final ServerPlayer nmsTarget = targetCraftPlayer.getHandle();
             this.npc.getNavigator().setTarget(targetPlayer.getLocation().clone().add(5, 0, 5));
@@ -111,72 +116,11 @@ public class NpcBrain extends NpcInventoryDecider {
                             nmsPlayer.connection.chat("Here is the wood i found :)", false);
                         });
                     });
-                });*/
+                });
             });
         } else {
             this.player.chat("I DONT NEED WOOD FUCK OUT MY FACE");
-        }
-    }
-
-    public void waitAndHit(ServerPlayer attacker,
-                                              ServerPlayer victim,
-                                              long delay,
-                                              OnHittingComplete onHittingComplete) {
-        BlockingQueue<Void> pause = new ArrayBlockingQueue<Void>(3);
-        TargetingConditions conditions = TargetingConditions.forCombat();
-        for (int x = 0; x <= 3; x++) {
-            try {
-                pause.poll(delay, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-
-            if (!conditions.test(victim, attacker)) {
-                attacker.connection.chat("Your lucky i cant fucking hit you fuckface", false);
-                continue;
-            }
-            attacker.connection.chat("Take this, asshole!", false);
-            attacker.attack(victim);
-            attacker.swing(InteractionHand.MAIN_HAND);
-        }
-        Bukkit.getScheduler().runTask(Civilizations.INSTANCE, onHittingComplete::onComplete);
-    }
-
-    protected List<BlockReferance> getReferancesTo(Chunk origin, Material... types) {
-        final List<BlockReferance> result = new ArrayList<>();
-        Collection<ChunkSnapshot> chunks = around(this.player.getLocation().getChunk(), 2);
-        for (ChunkSnapshot snapshot : chunks) {
-            Bukkit.broadcastMessage("Searching chunks");
-            for (int x = 0; x <= 15; x++) {
-                for (int z = 0; z <= 15; z++) {
-                    for (int y = 40; y <= 200; y++) {
-                        Material type = snapshot.getBlockType(x, y, z);
-                        if (type == Material.AIR) continue;
-                        for (Material aType : types) {
-                            if (aType == type) {
-                                result.add(new BlockReferance(snapshot, x, y, z, aType));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    protected CompletableFuture<Void> waitForPathfind(OnPathfindComplete creationCallback) {
-        return CompletableFuture.runAsync(() -> {
-            while (npc.getNavigator().isNavigating()) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            Bukkit.getScheduler().runTask(Civilizations.INSTANCE, creationCallback::onComplete);
-        });
-    }
+        }*/
+    //}
 
 }
