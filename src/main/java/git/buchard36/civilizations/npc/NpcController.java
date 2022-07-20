@@ -104,9 +104,9 @@ public class NpcController extends NpcInventoryDecider {
                     placingLocation.getBlock().setType(typeToPlace);
                     //this.bukkitPlayer.getEquipment().setItemInMainHand(new ItemStack(Material.AIR));
                     if (onCompletion != null) onCompletion.onComplete();
-                }, 5L);
-            }, 3L);
-        }, 4L);
+                }, 0L);
+            }, 0L);
+        }, 0L);
     }
 
     public TNTPrimed fakeIgniteTnt(Location tntLocation) {
@@ -122,6 +122,44 @@ public class NpcController extends NpcInventoryDecider {
         this.bukkitPlayer.getEquipment().setItemInMainHand(new ItemStack(material));
     }
 
+    public void liveTrackToTargetPlayer(float baseSpeed,
+                                  boolean sprint,
+                                  @Nullable CallbackFunction function) {
+        Location playerCurrentLocation = this.linkedPlayer.getLocation();
+        this.assignRange(250F);
+        this.assignSpeed(baseSpeed);
+        this.setSprinting(sprint);
+        this.faceTorwardsOwner();
+        this.npcNavigator.setTarget(playerCurrentLocation);
+        CompletableFuture.runAsync(() -> {
+            this.waitForNavigator(); // wait async
+            runLater(() -> { // attempt sync checks then process sync callback
+                Location newTargetLocation = this.linkedPlayer.getLocation();
+                float distanceCurrent = (float) newTargetLocation.distance(this.bukkitPlayer.getLocation());
+                this.assignSpeed(1F);
+                this.setSprinting(false);
+
+                if (distanceCurrent >= 50) {
+                    runLater(() -> {
+                        this.sendChatMessage("THATS IT, IVE HAD IT YOU ASS");
+                        this.creepyTeleportToOwner();
+                        this.liveTrackToTargetPlayer(baseSpeed * 4F, true, function);
+                    }, 0L, null);
+                } else if (distanceCurrent >= 4) {
+                    runLater(() -> {
+                        this.sendChatMessage("Quit running you little shit!");
+                        this.liveTrackToTargetPlayer(baseSpeed + 2F, true, function);
+                    }, 0L, null);
+                } else {
+                    Bukkit.broadcastMessage("Completing function");
+                    //this.lockToOwner();
+                    if (function != null) runLater(function::onComplete, 0L, null);
+                }
+            }, 0L, null);
+        });
+
+    }
+
     /**
      * Continuesly navigate to a player until the NPC reaches them
      * @param player Player to follow to
@@ -131,25 +169,20 @@ public class NpcController extends NpcInventoryDecider {
      * @param onRestarted Called when this method restarts due to the player moving, and the NPC reaching the old player location
      *                    has a distance greater than 7 (Reach distance);
      */
+    @Deprecated 
     public void navigateNpcToPlayer(Player player,
                               float atBaseSpeed,
                               boolean useSprintingAnimation,
                               @Nullable CallbackFunction onCompletion,
                               @Nullable OnFunctionRestarted onRestarted) {
-        double distance = player.getLocation().distance(this.bukkitPlayer.getLocation());
+        float distance = (float) player.getLocation().distance(this.bukkitPlayer.getLocation());
         AtomicReference<Location> currentPlayerLocation = new AtomicReference<>(player.getLocation());
-        this.npcNavigator.getDefaultParameters().range((float) (distance * 3F));
+        this.assignRange(distance);
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
         this.npcNavigator.setTarget(player.getLocation().add(1, 0, 1));
         CompletableFuture.runAsync(() -> { // begin NPC waiting on a separate thread, so we don't halt the main thread
-            while (this.npcNavigator.isNavigating()) {
-                try {
-                    Thread.sleep(50); // block while NPC is navigating
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+            this.waitForNavigator();
 
             currentPlayerLocation.set(player.getLocation().clone().add(0.75, 0, 0.75));
             final Location currentLocation = this.bukkitPlayer.getLocation();
@@ -187,19 +220,13 @@ public class NpcController extends NpcInventoryDecider {
                                  @Nullable CallbackFunction onCompletion) {
         final Location currentLocation = this.bukkitPlayer.getLocation();
         float distance = (float) currentLocation.distance(location);
-        this.npcNavigator.getDefaultParameters().range(distance * 2F);
+        this.assignRange(distance);
         float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
         this.npcNavigator.setTarget(location.add(1, 0, 1));
         CompletableFuture.runAsync(() -> { // begin NPC waiting on a separate thread, so we don't halt the main thread
-            while (this.npcNavigator.isNavigating()) {
-                try {
-                    Thread.sleep(50); // block while NPC is navigating
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+            this.waitForNavigator();
 
             Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> {
                 this.nmsNpc.setSpeed(1F);
@@ -231,6 +258,30 @@ public class NpcController extends NpcInventoryDecider {
         }, 0, 35L);
     }
 
+    /**
+     * THIS WILL BLOCK THE MAIN THREAD, ONLY CALL IT ASYNC
+     */
+    protected void waitForNavigator() {
+        while (this.npcNavigator.isNavigating()) {
+            try {
+                Thread.sleep(50); // block while NPC is navigating
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void faceTorwardsOwner() {
+        this.citizensNpc.faceLocation(this.linkedPlayer.getLocation());
+    }
+
+    /**
+     * Tells us if the NpcNavigator is currently running
+     */
+    public boolean isNavigatorRunning() {
+        return this.npcNavigator.isNavigating();
+    }
+
     protected void setTargetAndFaceDirection(LivingEntity entity) {
         this.npcNavigator.getDefaultParameters().baseSpeed(1.5F);
         this.nmsNpc.setSprinting(false);
@@ -240,6 +291,18 @@ public class NpcController extends NpcInventoryDecider {
 
     public void stopLockingTask() {
         this.lockToTask.cancel();
+    }
+
+    public void assignRange(float distanceBeforeTeleporting) {
+        this.npcNavigator.getDefaultParameters().range(distanceBeforeTeleporting * 3F);
+    }
+
+    public void assignSpeed(float speed) {
+        this.npcNavigator.getDefaultParameters().baseSpeed(speed);
+    }
+
+    public void setSprinting(boolean sprinting) {
+        this.nmsNpc.setSprinting(true);
     }
 
     public void runLater(Runnable runnable, long delay, @Nullable CallbackFunction callback) {
