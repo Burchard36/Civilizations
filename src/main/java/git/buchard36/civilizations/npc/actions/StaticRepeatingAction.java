@@ -1,9 +1,14 @@
 package git.buchard36.civilizations.npc.actions;
 
 import git.buchard36.civilizations.Civilizations;
+import git.buchard36.civilizations.npc.NpcController;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
+/**
+ * This class is a static repeating action, meaning that this task will run ever x ticks, and
+ * attemp to trigger a task overridden in this class
+ */
 public abstract class StaticRepeatingAction {
 
     protected BukkitTask repeatingTask;
@@ -13,10 +18,10 @@ public abstract class StaticRepeatingAction {
         this.delayBetweenTasks = delayBetweenTasks;
     }
 
-    public void startTask() {
+    public void startTask(NpcController controller) {
         this.repeatingTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             if (!this.shouldTaskFire()) return;
-            this.task();
+            this.task(controller);
         }, 0, delayBetweenTasks);
     }
 
@@ -26,6 +31,6 @@ public abstract class StaticRepeatingAction {
      */
     public abstract boolean shouldTaskFire();
 
-    public abstract void task();
+    public abstract void task(NpcController controller);
 
 }

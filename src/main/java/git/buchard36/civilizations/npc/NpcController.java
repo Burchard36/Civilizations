@@ -1,6 +1,7 @@
 package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
+import git.buchard36.civilizations.npc.actions.StaticRepeatingAction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.npc.NPC;
@@ -10,12 +11,16 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftLivingEntity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import javax.annotation.Nullable;
-import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,13 +30,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class NpcController extends NpcInventoryDecider {
 
+    public final Player linkedPlayer;
     protected final BlockScanner blockScanner;
     protected BukkitTask lockToTask;
+    protected final List<StaticRepeatingAction> repeatingActions;
 
-    public NpcController(NPC npc) {
+    public NpcController(NPC npc, Player linkedPlayer) {
         super(npc);
-
+        this.linkedPlayer = linkedPlayer;
         this.blockScanner = new BlockScanner();
+        this.repeatingActions = new ArrayList<>();
     }
 
     @Override
@@ -39,6 +47,10 @@ public class NpcController extends NpcInventoryDecider {
         if (this.needsWood()) {
 
         }
+    }
+
+    public void registerRepeatingAction(StaticRepeatingAction action) {
+        this.repeatingActions.add(action);
     }
 
     protected void makePlayerAttack(LivingEntity entity,
@@ -71,7 +83,7 @@ public class NpcController extends NpcInventoryDecider {
      * @param typeToPlace Material type to place
      * @param onCompletion Callback function to run when the block is placed
      */
-    protected void placeBlockAsNpc(Location placingLocation,
+    public void placeBlockAsNpc(Location placingLocation,
                                    Material typeToPlace,
                                    @Nullable CallbackFunction onCompletion) {
         final ItemStack stack = new ItemStack(typeToPlace);
@@ -93,7 +105,20 @@ public class NpcController extends NpcInventoryDecider {
         }, 4L);
     }
 
-    protected void navigateNpcTo(Location location,
+    public TNTPrimed fakeIgniteTnt(Location tntLocation) {
+        this.citizensNpc.faceLocation(tntLocation);
+        this.makeNpcEquipItem(Material.FLINT_AND_STEEL);
+        this.nmsNpc.swing(InteractionHand.MAIN_HAND);
+        tntLocation.getWorld().playSound(tntLocation, Sound.ITEM_FLINTANDSTEEL_USE, 1F, 1F);
+        tntLocation.getBlock().setType(Material.AIR);
+        return (TNTPrimed) tntLocation.getWorld().spawnEntity(tntLocation, EntityType.PRIMED_TNT);
+    }
+
+    public void makeNpcEquipItem(Material material) {
+        this.bukkitPlayer.getEquipment().setItemInMainHand(new ItemStack(material));
+    }
+
+    public void navigateNpcTo(Location location,
                                  float atBaseSpeed,
                                  boolean useSprintingAnimation,
                                  @Nullable CallbackFunction onCompletion) {
@@ -137,5 +162,12 @@ public class NpcController extends NpcInventoryDecider {
 
     public void stopLockingTask() {
         this.lockToTask.cancel();
+    }
+
+    public void runLater(Runnable runnable, long delay, @Nullable CallbackFunction callback) {
+        Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
+            runnable.run();
+            if (callback !=null) callback.onComplete();
+        }, delay);
     }
 }
