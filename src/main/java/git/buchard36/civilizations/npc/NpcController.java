@@ -332,6 +332,11 @@ public class NpcController extends NpcInventoryDecider {
      * @param skinTextureUrl URL Link to the texture
      * @param function Calbackfunction profiging the texture and signature
      */
+    /**
+     * TODO: Broken
+     * @param skinTextureUrl
+     * @param function
+     */
     public void getTextureAndSig(String skinTextureUrl, CallbackDoubleString function) {
         CompletableFuture.runAsync(() -> {
             DataOutputStream out = null;
@@ -386,7 +391,7 @@ public class NpcController extends NpcInventoryDecider {
             JSONObject texture = (JSONObject) data.get("texture");
             String textureEncoded = (String) texture.get("value");
             String signature = (String) texture.get("signature");
-            function.onComplete(textureEncoded, signature);
+            Bukkit.getScheduler().runTask(Civilizations.INSTANCE, () -> function.onComplete(textureEncoded, signature)); // make sure to set back to main thread
         });
     }
 }
