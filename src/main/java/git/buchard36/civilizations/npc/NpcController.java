@@ -3,6 +3,7 @@ package git.buchard36.civilizations.npc;
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.actions.StaticRepeatingAction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
+import git.buchard36.civilizations.npc.interfaces.CallbackDoubleString;
 import git.buchard36.civilizations.npc.interfaces.OnFunctionRestarted;
 import git.buchard36.civilizations.utils.BlockScanner;
 import net.citizensnpcs.api.npc.NPC;
@@ -19,11 +20,19 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.*;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,12 +46,14 @@ public class NpcController extends NpcInventoryDecider {
     protected final BlockScanner blockScanner;
     protected BukkitTask lockToTask;
     protected final List<StaticRepeatingAction> repeatingActions;
+    public final NpcSoundController soundController;
 
     public NpcController(NPC npc, Player linkedPlayer) {
         super(npc);
         this.linkedPlayer = linkedPlayer;
         this.blockScanner = new BlockScanner();
         this.repeatingActions = new ArrayList<>();
+        this.soundController = new NpcSoundController(this);
     }
 
     @Override
@@ -93,7 +104,6 @@ public class NpcController extends NpcInventoryDecider {
         final ItemStack stack = new ItemStack(typeToPlace);
         Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
             this.citizensNpc.faceLocation(placingLocation); // 4 ticks later, face towards the block to place
-
             Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
                 this.bukkitPlayer.getEquipment().setItemInMainHand(stack); // 3 ticks later set the item in the NPC's hand
 
@@ -169,7 +179,7 @@ public class NpcController extends NpcInventoryDecider {
      * @param onRestarted Called when this method restarts due to the player moving, and the NPC reaching the old player location
      *                    has a distance greater than 7 (Reach distance);
      */
-    @Deprecated 
+    @Deprecated
     public void navigateNpcToPlayer(Player player,
                               float atBaseSpeed,
                               boolean useSprintingAnimation,
@@ -282,6 +292,10 @@ public class NpcController extends NpcInventoryDecider {
         return this.npcNavigator.isNavigating();
     }
 
+    public void makeNpcSayLeeroyJenkins() {
+        this.soundController.makeNpcPlaySound("minecraft:leeroy_jenkins");
+    }
+
     protected void setTargetAndFaceDirection(LivingEntity entity) {
         this.npcNavigator.getDefaultParameters().baseSpeed(1.5F);
         this.nmsNpc.setSprinting(false);
@@ -310,5 +324,69 @@ public class NpcController extends NpcInventoryDecider {
             runnable.run();
             if (callback !=null) callback.onComplete();
         }, delay);
+    }
+
+    /**
+     * Copy pasted from Citizens2 /npc skin -url command, sorry for the try catches
+     * but java is stupid and wont accept the throws in the method signature
+     * @param skinTextureUrl URL Link to the texture
+     * @param function Calbackfunction profiging the texture and signature
+     */
+    public void getTextureAndSig(String skinTextureUrl, CallbackDoubleString function) {
+        CompletableFuture.runAsync(() -> {
+            DataOutputStream out = null;
+            BufferedReader reader = null;
+            URL target = null;
+            try {
+                target = new URL("https://api.mineskin.org/generate/url");
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            HttpURLConnection con = null;
+            try {
+                con = (HttpURLConnection) target.openConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                con.setRequestMethod("POST");
+            } catch (ProtocolException e) {
+                e.printStackTrace();
+            }
+            con.setDoOutput(true);
+            con.setConnectTimeout(1000);
+            con.setReadTimeout(30000);
+            try {
+                out = new DataOutputStream(con.getOutputStream());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                out.writeBytes("url=" + URLEncoder.encode(skinTextureUrl, "UTF-8"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            JSONObject output;
+
+            try {
+                reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                output = (JSONObject) new JSONParser().parse(reader);
+            } catch (IOException | ParseException e) {
+                throw new RuntimeException(e);
+            }
+            JSONObject data = (JSONObject) output.get("data");
+            String uuid = (String) data.get("uuid");
+            JSONObject texture = (JSONObject) data.get("texture");
+            String textureEncoded = (String) texture.get("value");
+            String signature = (String) texture.get("signature");
+            function.onComplete(textureEncoded, signature);
+        });
     }
 }

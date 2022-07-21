@@ -51,6 +51,7 @@ public class TntTrollAction extends StaticRepeatingAction {
                                 (int) pussyRunAwayLocation.getZ()
                         );
                         pussyRunAwayLocation.setY(highestY);
+                        controller.makeNpcSayLeeroyJenkins();
                         controller.navigateNpcTo(pussyRunAwayLocation, 3, true, () -> {
                             controller.sendChatMessage("KABOOOM!");
                             primed.setFuseTicks(0);
