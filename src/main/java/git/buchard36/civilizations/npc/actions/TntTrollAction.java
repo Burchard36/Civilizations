@@ -1,33 +1,29 @@
 package git.buchard36.civilizations.npc.actions;
 
 import git.buchard36.civilizations.npc.NpcController;
+import git.buchard36.civilizations.npc.actions.interfaces.StaticRepeatingAction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.TNTPrimed;
 
-import java.util.Random;
-
 public class TntTrollAction extends StaticRepeatingAction {
 
-    protected final Random random;
     public TntTrollAction() {
         super(40);
-        this.random = new Random();
     }
 
 
     @Override
     public boolean shouldTaskFire() {
-        final int chanceToFire = this.random.nextInt((30) + 1);
+        /*final int chanceToFire = this.random.nextInt((30) + 1);
         final int predictedChance = this.random.nextInt(100);
-        return chanceToFire >= predictedChance;
+        return chanceToFire >= predictedChance;*/
+        return false;
     }
 
     @Override
     public void task(NpcController controller, CallbackFunction function) {
-        Bukkit.broadcastMessage("Firing task!");
         controller.stopLockingTask();
         controller.sendChatMessage("Hey... I really wana tell you something <3");
         controller.liveTrackToTargetPlayer( 2.25F, false, () -> {

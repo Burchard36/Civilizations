@@ -2,8 +2,10 @@ package git.buchard36.civilizations.npc;
 
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.actions.TntTrollAction;
+import net.citizensnpcs.Citizens;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.npc.CitizensNPC;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -12,7 +14,7 @@ import org.bukkit.entity.Player;
 public class NpcFactory {
 
     protected final Civilizations civs;
-    protected NPC npc;
+    protected CitizensNPC npc;
 
     public NpcFactory(Civilizations civs) {
         this.civs = civs;
@@ -24,8 +26,8 @@ public class NpcFactory {
         }
 
         //TODO this gonna cause mem leaks on reloads.
-        this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS");
-        npc.spawn(player.getLocation().add(5, 1, 5));
+        this.npc = (CitizensNPC) CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS");
+        npc.spawn(player.getLocation().add(2, 1, 2));
         SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
         final NpcController controller = new NpcController(npc, player);
         controller.getTextureAndSig("https://www.minecraftskins.com/uploads/skins/2020/02/20/leeroy-jenkins-13881382.png?v510",

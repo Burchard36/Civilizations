@@ -1,4 +1,4 @@
-package git.buchard36.civilizations.npc.actions;
+package git.buchard36.civilizations.npc.actions.interfaces;
 
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.NpcController;
@@ -6,17 +6,21 @@ import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.Random;
+
 /**
  * This class is a static repeating action, meaning that this task will run ever x ticks, and
  * attemp to trigger a task overridden in this class
  */
-public abstract class StaticRepeatingAction {
+public abstract class StaticRepeatingAction  extends NpcAction {
 
+    protected final Random random;
     protected BukkitTask repeatingTask;
     protected final long delayBetweenTasks;
 
     public StaticRepeatingAction(long delayBetweenTasks) {
         this.delayBetweenTasks = delayBetweenTasks;
+        this.random = new Random();
     }
 
     public void startTask(NpcController controller) {
