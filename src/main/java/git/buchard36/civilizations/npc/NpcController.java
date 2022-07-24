@@ -282,8 +282,13 @@ public class NpcController extends NpcInventoryDecider {
     protected void setTargetAndFaceDirection(LivingEntity entity) {
         this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             if (this.isNavigatorRunning()) return;
-            this.npcNavigator.setTarget(this.linkedPlayer.getLocation().add(random.nextInt(10), 0, random.nextInt(10)),
-                    params -> new CivilizationsNavigationStrategy(params, entity, citizensNpc));
+            this.npcNavigator.setTarget(this.linkedPlayer.getLocation().clone().add(ThreadLocalRandom.current().nextInt(-20, 20),
+                            0,
+                            ThreadLocalRandom.current().nextInt(-20, 20)),
+                    params -> {
+
+                        return new CivilizationsNavigationStrategy(params, entity, citizensNpc);
+                    });
         }, 0L, 1L);
     }
 

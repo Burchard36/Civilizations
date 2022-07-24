@@ -73,6 +73,7 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
 
             Vector nextLocation = this.getPath().iterator().next();
             if (NMS.getDestination(npc.getEntity()) == null) {
+                NMS.updatePathfindingRange(npc, 100000f);
                 NMS.setDestination(npc.getEntity(), nextLocation.getX(), nextLocation.getY(), nextLocation.getZ(), 1F);
                 this.currentPath.remove(0);
             }
