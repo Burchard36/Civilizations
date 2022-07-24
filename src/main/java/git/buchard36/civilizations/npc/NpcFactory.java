@@ -10,37 +10,43 @@ import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 
 public class NpcFactory {
 
+    public static Random random = new Random();
+
     protected final Civilizations civs;
-    protected CitizensNPC npc;
+    protected List<CitizensNPC> npcs;
 
     public NpcFactory(Civilizations civs) {
         this.civs = civs;
+        this.npcs = new ArrayList<>();
     }
 
     public void createNpc(Player player) {
-        if (this.npc != null) {
-            this.npc.destroy();
+
+        for (int x = 0; x <= 200; x++) {
+            CitizensNPC npc = (CitizensNPC) CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS" + x);
+            npc.spawn(player.getLocation().add(random.nextInt(10), 1, random.nextInt(10)));
+            final NpcController controller = new NpcController(npc, player);
+            controller.lockToOwner();
+            npcs.add(npc);
+            //controller.registerRepeatingAction(new TntTrollAction());
         }
 
         //TODO this gonna cause mem leaks on reloads.
-        this.npc = (CitizensNPC) CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS");
-        npc.spawn(player.getLocation().add(2, 1, 2));
-        SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
-        final NpcController controller = new NpcController(npc, player);
-        controller.getTextureAndSig("https://www.minecraftskins.com/uploads/skins/2020/02/20/leeroy-jenkins-13881382.png?v510",
-                skinTrait::setTexture);
-        controller.lockToOwner();
-        controller.registerRepeatingAction(new TntTrollAction());
+
         /*Bukkit.getScheduler().runTaskTimer(this.civs, () -> {
             npc.getNavigator().setTarget(player.getLocation().add(2, 0, 2));
         }, 60L, 60L);*/
     }
 
     public void destroy() {
-        this.npc.destroy();
+        this.npcs.forEach(CitizensNPC::destroy);
     }
 
 }

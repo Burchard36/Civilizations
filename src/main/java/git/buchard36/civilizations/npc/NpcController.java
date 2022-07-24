@@ -50,6 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import static git.buchard36.civilizations.npc.NpcFactory.random;
+
 
 /**
  * Controller method to handle the NPC's behavior.
@@ -280,7 +282,7 @@ public class NpcController extends NpcInventoryDecider {
     protected void setTargetAndFaceDirection(LivingEntity entity) {
         this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             if (this.isNavigatorRunning()) return;
-            this.npcNavigator.setTarget(this.linkedPlayer.getLocation().add(2, 0, 2),
+            this.npcNavigator.setTarget(this.linkedPlayer.getLocation().add(random.nextInt(10), 0, random.nextInt(10)),
                     params -> new CivilizationsNavigationStrategy(params, entity, citizensNpc));
         }, 0L, 1L);
     }

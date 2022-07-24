@@ -5,7 +5,6 @@ import net.citizensnpcs.api.ai.NavigatorParameters;
 import net.citizensnpcs.api.ai.TargetType;
 import net.citizensnpcs.npc.CitizensNPC;
 import net.citizensnpcs.util.NMS;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
@@ -15,7 +14,6 @@ import xyz.oli.pathing.Pathfinder;
 import xyz.oli.wrapper.PathLocation;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
@@ -33,7 +31,6 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
                                               LivingEntity target,
                                               CitizensNPC npc) {
         super(TargetType.LOCATION);
-        Bukkit.broadcastMessage("Called");
         this.parameters = parameters;
         this.target = target;
         this.currentPathfindingLocation = new AtomicReference<>(null);
@@ -63,7 +60,6 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
     @Override
     public void stop() {
         // I dont have anything to stop :c
-        Bukkit.broadcastMessage("Stopping navigation!");
         NMS.cancelMoveDestination(npc.getEntity());
         this.currentPath.clear();
     }
@@ -72,7 +68,6 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
     public boolean update() {
         if (this.pathfinderRunning) {
             if (this.currentPath.size() <= 0) {
-                Bukkit.broadcastMessage("All points were successfully iterated!");
                 return true;
             }
 
@@ -80,11 +75,10 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
             if (NMS.getDestination(npc.getEntity()) == null) {
                 NMS.setDestination(npc.getEntity(), nextLocation.getX(), nextLocation.getY(), nextLocation.getZ(), 1F);
                 this.currentPath.remove(0);
-
-            } else Bukkit.broadcastMessage("The NPC is still navigating, therefore no new Destination was set");
+            }
             return false;
 
-        } else Bukkit.broadcastMessage("Asynchronously waiting for PathLocation results. . .");
+        }
 
         PathLocation currentTargetLocation = BukkitMapper.toPathLocation(this.target.getLocation());
         PathLocation npcCurrentLocation = BukkitMapper.toPathLocation(this.npc.getEntity().getLocation());
@@ -97,11 +91,8 @@ public class CivilizationsNavigationStrategy extends AbstractPathStrategy {
                 CivilizationsNavigationStrategy.this.currentPath.add(vector);
 
             }
-            Bukkit.broadcastMessage("Total path locations loaded: " + CivilizationsNavigationStrategy.this.currentPath.size());
             this.pathfinderRunning = true;
         });
         return false;
     }
-
-
 }
