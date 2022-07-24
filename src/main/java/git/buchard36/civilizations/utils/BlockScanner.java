@@ -1,6 +1,6 @@
 package git.buchard36.civilizations.utils;
 
-import git.buchard36.civilizations.npc.BlockReferance;
+import git.buchard36.civilizations.npc.BlockReference;
 import org.bukkit.*;
 
 import java.util.*;
@@ -11,8 +11,8 @@ public class BlockScanner {
 
     }
 
-    protected List<BlockReferance> getReferancesTo(Chunk origin, Material... types) {
-        final List<BlockReferance> result = new ArrayList<>();
+    protected List<BlockReference> getReferancesTo(Chunk origin, Material... types) {
+        final List<BlockReference> result = new ArrayList<>();
         Collection<ChunkSnapshot> chunks = around(origin, 2);
         for (ChunkSnapshot snapshot : chunks) {
             Bukkit.broadcastMessage("Searching chunks");
@@ -23,7 +23,7 @@ public class BlockScanner {
                         if (type == Material.AIR) continue;
                         for (Material aType : types) {
                             if (aType == type) {
-                                result.add(new BlockReferance(snapshot, x, y, z, aType));
+                                result.add(new BlockReference(snapshot, x, y, z, aType));
                             }
                         }
                     }

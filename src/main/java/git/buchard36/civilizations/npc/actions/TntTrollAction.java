@@ -14,11 +14,12 @@ public class TntTrollAction extends StaticRepeatingAction {
     }
 
 
+    //TODO Disabled until pathfinding methods are refactored
     @Override
     public boolean shouldTaskFire() {
-        /*final int chanceToFire = this.random.nextInt((30) + 1);
-        final int predictedChance = this.random.nextInt(100);
-        return chanceToFire >= predictedChance;*/
+       // final int chanceToFire = this.random.nextInt((30) + 1);
+        //final int predictedChance = this.random.nextInt(100);
+       // return chanceToFire >= predictedChance;
         return false;
     }
 

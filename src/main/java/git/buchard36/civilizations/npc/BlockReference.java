@@ -5,7 +5,7 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
-public class BlockReferance {
+public class BlockReference {
 
     public final ChunkSnapshot snapshot;
     public final int blockX;
@@ -13,7 +13,7 @@ public class BlockReferance {
     public final int blockZ;
     public final Material material;
 
-    public BlockReferance(ChunkSnapshot snapshot,
+    public BlockReference(ChunkSnapshot snapshot,
                           int blockX,
                           int blockY,
                           int blockZ,
