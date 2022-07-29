@@ -3,6 +3,7 @@ package git.buchard36.civilizations.npc.actions;
 import git.buchard36.civilizations.npc.NpcController;
 import git.buchard36.civilizations.npc.actions.interfaces.StaticRepeatingAction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
+import git.buchard36.civilizations.npc.interfaces.SurvivalTrackingStrategy;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.TNTPrimed;
@@ -17,15 +18,14 @@ public class TntTrollAction extends StaticRepeatingAction {
     //TODO Disabled until pathfinding methods are refactored
     @Override
     public boolean shouldTaskFire() {
-       // final int chanceToFire = this.random.nextInt((30) + 1);
-        //final int predictedChance = this.random.nextInt(100);
-       // return chanceToFire >= predictedChance;
-        return false;
+        final int chanceToFire = this.random.nextInt((30) + 1);
+        final int predictedChance = this.random.nextInt(100);
+        return chanceToFire >= predictedChance;
+        //return false;
     }
 
     @Override
     public void task(NpcController controller, CallbackFunction function) {
-        controller.stopLockingTask();
         controller.sendChatMessage("Hey... I really wana tell you something <3");
         controller.liveTrackToTargetPlayer( 2.25F, false, () -> {
             controller.sendChatMessage("You know, over the time I've spent with you, i believe im starting to feel something" +
@@ -42,13 +42,19 @@ public class TntTrollAction extends StaticRepeatingAction {
                         TNTPrimed primed = controller.fakeIgniteTnt(tntLocation);
                         primed.setFuseTicks(2000);
                         controller.sendChatMessage("LOLOLOL Fucking dumbass");
-                        final Location pussyRunAwayLocation = tntLocation.clone().add(15, 0 ,15);
-                        final int highestY = pussyRunAwayLocation.getWorld().getHighestBlockYAt(
-                                (int) pussyRunAwayLocation.getX(),
-                                (int) pussyRunAwayLocation.getZ()
-                        );
-                        pussyRunAwayLocation.setY(highestY);
+                        Location pussyRunAwayLocation = controller.getRandomSafeLocationNear(
+                                SurvivalTrackingStrategy.class,
+                                -15,
+                                15,
+                                controller.getCurrentOwnerLocation());
                         controller.makeNpcSayLeeroyJenkins();
+                        if (pussyRunAwayLocation == null) {
+                            controller.sendChatMessage("FUCK FUCK FUCK I CANT FIND A PLACE TO MOOOVE");
+                            primed.setFuseTicks(0);
+                            controller.lockToOwner();
+                            function.onComplete();
+                            return;
+                        }
                         controller.navigateNpcTo(pussyRunAwayLocation, 3, true, () -> {
                             controller.sendChatMessage("KABOOOM!");
                             primed.setFuseTicks(0);

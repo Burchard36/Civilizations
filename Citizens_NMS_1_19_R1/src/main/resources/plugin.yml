@@ -1,4 +1,0 @@
-name: Citizens1_19_NMS
-version: '${project.version}'
-main: net.citizensnpcs.nbt.citizens1_19_nms.Citizens1_19_NMS
-api-version: 1.19

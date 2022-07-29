@@ -1,7 +1,11 @@
 package xyz.oli.model.finder;
 
+import git.buchard36.civilizations.Civilizations;
 import lombok.NonNull;
+import org.bukkit.*;
 import xyz.oli.Pathetic;
+import xyz.oli.PatheticMapper;
+import xyz.oli.bukkit.BukkitMapper;
 import xyz.oli.pathing.Pathfinder;
 import xyz.oli.pathing.result.Path;
 import xyz.oli.pathing.result.PathfinderResult;

@@ -1,26 +1,17 @@
 package git.buchard36.civilizations.npc;
 
-import com.google.common.collect.Iterators;
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.actions.interfaces.StaticRepeatingAction;
-import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
-import git.buchard36.civilizations.npc.interfaces.CallbackDoubleString;
-import git.buchard36.civilizations.npc.interfaces.CivilizationsNavigationStrategy;
+import git.buchard36.civilizations.npc.interfaces.*;
 import git.buchard36.civilizations.utils.BlockScanner;
 
-import net.citizensnpcs.nms.v1_19_R1.entity.EntityHumanNPC;
 import net.citizensnpcs.npc.CitizensNPC;
 
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MoverType;
-import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.craftbukkit.v1_19_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftLivingEntity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -29,7 +20,6 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -48,9 +38,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
-
-import static git.buchard36.civilizations.npc.NpcFactory.random;
 
 
 /**
@@ -161,37 +148,37 @@ public class NpcController extends NpcInventoryDecider {
     public void liveTrackToTargetPlayer(float baseSpeed,
                                   boolean sprint,
                                   @Nullable CallbackFunction function) {
-        this.assignRange(250F);
-        this.assignSpeed(baseSpeed);
+        //this.assignRange(250F);
+        //this.assignSpeed(baseSpeed);
         this.setSprinting(sprint);
-        this.lockToOwner();
-        CompletableFuture.supplyAsync(() -> {
-            Bukkit.broadcastMessage("Waitingg");
-            stallThread(40L); // stall for 40 ticks
-            Bukkit.broadcastMessage("Finished!");
-            runLater(() -> { // attempt sync checks then process sync callback
-                Location newTargetLocation = this.linkedPlayer.getLocation();
-                float distanceCurrent = (float) newTargetLocation.distance(this.bukkitPlayer.getLocation());
+        this.setTargetAndFaceDirection(this.linkedPlayer, true, 2.5F);
+        runLater(() -> { // attempt sync checks then process sync callback
+            Location newTargetLocation = this.linkedPlayer.getLocation();
+            float distanceCurrent = (float) distance(newTargetLocation, this.bukkitPlayer.getLocation());
+            Bukkit.broadcastMessage("Distance: " + distanceCurrent);
+            if (distanceCurrent >= 50) {
+                runLater(() -> {
+                    this.sendChatMessage("THATS IT, IVE HAD IT YOU ASS");
+                    this.creepyTeleportToOwner(false);
+                    this.liveTrackToTargetPlayer(baseSpeed * 2F, true, function);
+                }, 10L, null);
+            } else if (distanceCurrent >= 4) {
+                runLater(() -> {
+                    this.sendChatMessage("Quit running you little shit!");
+                    this.liveTrackToTargetPlayer(baseSpeed + 2F, true, function);
+                }, 10L, null);
+            } else {
+                if (function != null) runLater(function::onComplete, 2L, null);
+            }
+        }, 20L, null);
 
-                if (distanceCurrent >= 50) {
-                    runLater(() -> {
-                        this.sendChatMessage("THATS IT, IVE HAD IT YOU ASS");
-                        this.creepyTeleportToOwner(false);
-                        this.liveTrackToTargetPlayer(baseSpeed * 4F, true, function);
-                    }, 0L, null);
-                } else if (distanceCurrent >= 4) {
-                    runLater(() -> {
-                        this.sendChatMessage("Quit running you little shit!");
-                        this.liveTrackToTargetPlayer(baseSpeed + 2F, true, function);
-                    }, 0L, null);
-                } else {
-                    if (function != null) runLater(function::onComplete, 0L, null);
-                }
-            }, 0L, null);
 
-            return null;
-        }, this.executor);
+    }
 
+    public static double distance(Location first, Location second) {
+        double x = first.getX() - second.getX();
+        double z = first.getZ() - second.getZ();
+        return Math.sqrt(x * x + z * z);
     }
 
     public void creepyTeleportToOwner(boolean followAfterwards) {
@@ -211,10 +198,11 @@ public class NpcController extends NpcInventoryDecider {
         final Location currentLocation = this.bukkitPlayer.getLocation();
         float distance = (float) currentLocation.distance(location);
         this.assignRange(distance);
-        float initialBaseSpeed = this.npcNavigator.getDefaultParameters().baseSpeed();
         this.npcNavigator.getDefaultParameters().baseSpeed(atBaseSpeed);
         this.nmsNpc.setSprinting(useSprintingAnimation);
-        this.npcNavigator.setTarget(location.add(1, 0, 1));
+        /*this.npcNavigator.setTarget(location, params -> {
+                    return new RunToLocationAStarStrategy(params, location, this.citizensNpc);
+                });*/
         CompletableFuture.runAsync(() -> { // begin NPC waiting on a separate thread, so we don't halt the main thread
             this.waitForNavigator();
 
@@ -237,34 +225,29 @@ public class NpcController extends NpcInventoryDecider {
     public void lockToOwner() {
         this.assignSpeed(2F);
         this.setSprinting(false);
-        //this.creepyTeleportToOwner(false);
+        this.creepyTeleportToOwner(false);
         this.assignRange(100);
-        this.setTargetAndFaceDirection(this.linkedPlayer);
+        this.setTargetAndFaceDirection(this.linkedPlayer, true, 1.5F);
     }
 
     public void lockTo(LivingEntity entity) {
-        this.setTargetAndFaceDirection(entity);
+        this.setTargetAndFaceDirection(entity, true, 1.5F);
     }
 
     /**
      * THIS WILL BLOCK THE MAIN THREAD, ONLY CALL IT ASYNC
      */
     protected void waitForNavigator() {
+        int maxTickTry = (20 * 60) * 5;
+        int currentTickTry = 0;
         while (this.npcNavigator.isNavigating()) {
             try {
                 Thread.sleep(50); // block while NPC is navigating
+                currentTickTry++;
+                if (currentTickTry >= maxTickTry) return;
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    protected void stallThread(long ticks) {
-        if (!Bukkit.isPrimaryThread()) throw new RuntimeException("You cannot stallThread on the Bukkit thread!");
-        try {
-            TimeUnit.MILLISECONDS.sleep(50 * ticks);
-        } catch (InterruptedException ex) {
-            throw new RuntimeException(ex); // should NEVER fail
         }
     }
 
@@ -279,22 +262,50 @@ public class NpcController extends NpcInventoryDecider {
         this.soundController.makeNpcPlaySound("minecraft:leeroy_jenkins");
     }
 
-    protected void setTargetAndFaceDirection(LivingEntity entity) {
+    protected void setTargetAndFaceDirection(LivingEntity entity, boolean cancelPrevious, double withSpeed) {
+        if (cancelPrevious && this.lockToTask != null) {
+            if (this.npcNavigator.getPathStrategy() != null)
+                this.npcNavigator.getPathStrategy().stop(); // nonull check
+            this.lockToTask.cancel();
+            this.lockToTask = null;
+        }
         this.lockToTask = Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
             if (this.isNavigatorRunning()) return;
-            this.npcNavigator.setTarget(this.linkedPlayer.getLocation().clone().add(ThreadLocalRandom.current().nextInt(-20, 20),
-                            0,
-                            ThreadLocalRandom.current().nextInt(-20, 20)),
-                    params -> {
-
-                        return new CivilizationsNavigationStrategy(params, entity, citizensNpc);
-                    });
+            /*this.npcNavigator.setTarget(this.linkedPlayer.getLocation(),
+                    params -> new ChasingEntityAStarStrategy(params, entity, citizensNpc, withSpeed));*/
         }, 0L, 1L);
     }
 
-    public void stopLockingTask() {
-       // this.lockToTask.cancel();
-        this.npcNavigator.cancelNavigation();
+    public Location getRandomSafeLocationNear(Class<?> strategy, int minDistance, int maxDistance, Location origin) {
+        if (SurvivalTrackingStrategy.class.equals(strategy)) {
+
+            int maxTries = 10;
+
+            for (int x = 0; x <= maxTries; x++) {
+                Location randomized = this.randomizedClone(origin, minDistance, maxDistance);
+                int theY = randomized.getWorld().getHighestBlockYAt(randomized.getBlockX(), randomized.getBlockZ());
+                randomized.setY(theY);
+                switch (randomized.getBlock().getType()) {
+                    case WATER, LAVA -> {
+                        Bukkit.broadcastMessage("Ew water/lava!");
+                        continue;
+                    }
+
+                    default -> {
+                        return randomized;
+                    }
+                }
+            }
+            return null;
+        } else return null;
+    }
+
+    public Location randomizedClone(Location origin, int minDistance, int maxDistance) {
+        return origin.clone().add(
+                ThreadLocalRandom.current().nextInt(minDistance, maxDistance),
+                0,
+                ThreadLocalRandom.current().nextInt(minDistance, maxDistance)
+        );
     }
 
     public void assignRange(float distanceBeforeTeleporting) {
@@ -319,6 +330,13 @@ public class NpcController extends NpcInventoryDecider {
 
     public void runLater(Runnable runnable, long delay, @Nullable CallbackFunction callback) {
         Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
+            runnable.run();
+            if (callback !=null) callback.onComplete();
+        }, delay);
+    }
+
+    public void runLaterAsync(Runnable runnable, long delay, @Nullable CallbackFunction callback) {
+        Bukkit.getScheduler().runTaskLaterAsynchronously(Civilizations.INSTANCE, () -> {
             runnable.run();
             if (callback !=null) callback.onComplete();
         }, delay);
