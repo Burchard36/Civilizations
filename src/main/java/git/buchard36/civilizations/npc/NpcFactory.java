@@ -1,7 +1,5 @@
 package git.buchard36.civilizations.npc;
 
-import com.hakan.core.HCore;
-import com.hakan.core.npc.HNPC;
 import git.buchard36.civilizations.Civilizations;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunction;
 import git.buchard36.civilizations.npc.interfaces.CallbackFunctionResult;
@@ -14,17 +12,14 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_19_R1.block.CraftBlock;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import xyz.oli.PatheticMapper;
 import xyz.oli.bukkit.BukkitMapper;
 import xyz.oli.wrapper.PathLocation;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 
 public class NpcFactory {
@@ -50,12 +45,13 @@ public class NpcFactory {
 
     public void createNpc(Player player) {
 
-        HNPC npc = HCore.npcBuilder("test")
+        /*HNPC npc = HCore.npcBuilder(player.getName() + System.currentTimeMillis())
                 .showEveryone(true)
-                .lines("name")
-                .skin("test")
                 .location(player.getLocation())
-                .forceBuild();
+                .skin(player.getName())
+                .lines(List.of("Holograms!"))
+                .addViewers(player.getUniqueId())
+                .build();
         npc.expire(1, TimeUnit.DAYS);
         npc.setEquipment(HNPC.EquipmentType.CHEST, new ItemStack(Material.DIAMOND_CHESTPLATE));
         npc.setEquipment(HNPC.EquipmentType.LEGS, new ItemStack(Material.LEATHER_LEGGINGS));
@@ -69,14 +65,14 @@ public class NpcFactory {
                     + " Z: "
                     + npc.getLocation().getBlockZ()
             );
-        }, 0L, 100L);
-        this.pathFindTo(player, npc); // endless recursive async function
+        }, 0L, 100L);*/
+        //this.pathFindTo(player, npc); // endless recursive async function
 
-        /*CivNpc npc = new CivNpc();
+        CivNpc npc = new CivNpc();
         npc.spawnIn(player.getLocation(), () -> {
             Bukkit.broadcastMessage("Starting pathfinding!");
             pathFindTo(player, npc);
-        });*/
+        });
         /*this.destroy();
         for (int x = 0; x <= 1; x++) {
             CitizensNPC npc = (CitizensNPC) CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "LEEROY JENKINS" + x);
@@ -97,10 +93,10 @@ public class NpcFactory {
         }*/
     }
 
-    public void pathFindTo(Player player, HNPC npc) {
+    public void pathFindTo(Player player, CivNpc npc) {
         Bukkit.broadcastMessage("Calculating path. . .");
         this.generateAsync(
-                npc.getLocation(),
+                npc.getBukkitEntity().getLocation(),
                 player.getLocation().clone()/*.add(
                         ThreadLocalRandom.current().nextInt(-40, 40),
                         0,
@@ -122,14 +118,33 @@ public class NpcFactory {
         });
     }
 
-    protected void processMove(HNPC npc, Iterator<PathLocation> locations, CallbackFunction onCompletion) {
+    protected void processMove(CivNpc npc, Iterator<PathLocation> locations, CallbackFunction onCompletion) {
         if (locations.hasNext()) {
             PathLocation location = locations.next();
             Location loc = BukkitMapper.toLocation(location);
-            //Bukkit.getScheduler().runTaskLater(Civilizations.INSTANCE, () -> {
-                npc.walk(loc, 2.5F);
+
+            /*AABB entity = npc.getBoundingBox();
+            AABB box = AABB.of(new BoundingBox(((CraftBlock) loc.getBlock()).getPosition()));
+            if (entity.intersects(box)) {
+                AABB inter = entity.intersect(box);
+                Bukkit.broadcastMessage("Interecting at!");
+            }*/
+
+            /*if (
+                    (entity.minX <= box.maxX && entity.maxX >= box.minX) &&
+                    (entity.minY <= box.maxY && entity.maxY >= box.minY) &&
+                    (entity.minZ <= box.maxZ && entity.minZ >= box.maxZ)
+            ) {
+                Bukkit.broadcastMessage("Colliding!");
+                entity.intersect()
+            }*/
+
+            double x = (double) (location.getBlockX()) + 0.5D;
+            double y = location.getY();
+            double z = (double) (location.getBlockZ()) + 0.5D;
+            npc.moveEntityTo(x, y, z, () -> {
                 processMove(npc, locations, onCompletion);
-            //}, 6L);
+            });
         } else onCompletion.onComplete();
     }
 

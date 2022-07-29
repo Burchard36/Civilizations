@@ -76,9 +76,11 @@ public class CivNpc extends ServerPlayer implements CivstractNpc {
                         //nmsPlayer.connection.send(posPacket);
 
 
-                        /*Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
-                            moveEntityTo(nmsPlayer.getX(), nmsPlayer.getY(), nmsPlayer.getZ());
-                        }, 0L, 20L * 10L);*/
+                        Bukkit.getScheduler().runTaskTimer(Civilizations.INSTANCE, () -> {
+                            moveEntityTo(nmsPlayer.getX(), nmsPlayer.getY(), nmsPlayer.getZ(), () -> {
+                                Bukkit.broadcastMessage("Completed!");
+                            });
+                        }, 0L, 20L * 10L);
                     });
                 });
             }
@@ -105,31 +107,6 @@ public class CivNpc extends ServerPlayer implements CivstractNpc {
         return this.entityId;
     }
 
-    public Vec3 collideWith(Vec3 vec3d) {
-        AABB axisalignedbb = this.getBoundingBox();
-        List<VoxelShape> list = this.level.getEntityCollisions(this, axisalignedbb.expandTowards(vec3d));
-        Vec3 vec3d1 = vec3d.lengthSqr() == 0.0 ? vec3d : collideBoundingBox(this, vec3d, axisalignedbb, this.level, list);
-        boolean flag = vec3d.x != vec3d1.x;
-        boolean flag1 = vec3d.y != vec3d1.y;
-        boolean flag2 = vec3d.z != vec3d1.z;
-        boolean flag3 = this.onGround || flag1 && vec3d.y < 0.0;
-        if (this.maxUpStep > 0.0F && flag3 && (flag || flag2)) {
-            Vec3 vec3d2 = collideBoundingBox(this, new Vec3(vec3d.x, (double)this.maxUpStep, vec3d.z), axisalignedbb, this.level, list);
-            Vec3 vec3d3 = collideBoundingBox(this, new Vec3(0.0, (double)this.maxUpStep, 0.0), axisalignedbb.expandTowards(vec3d.x, 0.0, vec3d.z), this.level, list);
-            if (vec3d3.y < (double)this.maxUpStep) {
-                Vec3 vec3d4 = collideBoundingBox(this, new Vec3(vec3d.x, 0.0, vec3d.z), axisalignedbb.move(vec3d3), this.level, list).add(vec3d3);
-                if (vec3d4.horizontalDistanceSqr() > vec3d2.horizontalDistanceSqr()) {
-                    vec3d2 = vec3d4;
-                }
-            }
-
-            if (vec3d2.horizontalDistanceSqr() > vec3d1.horizontalDistanceSqr()) {
-                return vec3d2.add(collideBoundingBox(this, new Vec3(0.0, -vec3d2.y + vec3d.y, 0.0), axisalignedbb.move(vec3d2), this.level, list));
-            }
-        }
-
-        return vec3d1;
-    }
 
     @Override
     public UUID getEntityUuid() {
